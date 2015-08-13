@@ -487,7 +487,11 @@ abstract class AbstractModel
         $resultsArray = [];
 
         foreach ($set as $object) {
-            $validatorName = get_class($object);
+            if (is_object($object)) {
+                $validatorName = get_class($object);
+            } else if (is_string($object)) {
+                $validatorName = $object;
+            }
             if (is_array($inputData)) {
                 foreach ($inputData as $name => &$data) {
                     $result = $this->runSingle($data, $object, $type, $name);
@@ -505,6 +509,10 @@ abstract class AbstractModel
     private function runSingle(&$input, $object, $type)
     {
         $result = [];
+
+        if (is_string($object)) {
+            return call_user_func([$this,$object], $input);
+        }
 
         if ($type === 'filter') {
             $input = $object->filter($input);

@@ -47,6 +47,11 @@ class TestModel2 extends AbstractModel
         }
     }
 
+    protected function alwaysTrue($field)
+    {
+        return true;
+    }
+
     public function setData(array $data)
     {
         $this->setDataSafe($data);
@@ -165,6 +170,33 @@ class AbstractModelTest extends \PHPUnit_Framework_TestCase
         $model->setValidators($validators);
 
         $model->setData($inputData);
+    }
+
+    /**
+     * @group testSetDataGlobalValidator
+     *
+     */
+    public function test_setData_globalValidator_customValidator()
+    {
+        $inputData = [
+            'email' => 23,
+            'user_id' => 'haha',
+            'password' => 'nope'
+        ];
+        $model = new TestModel2();
+
+        $validators = [
+            '@all' => ['alwaysTrue']
+        ];
+
+        $model->setValidators($validators);
+
+        $model->setData($inputData);
+
+        $this->assertEquals([
+            'lolmail' => 23,
+            'id' => 'haha'
+        ], $model->getData());
     }
 
     /**
