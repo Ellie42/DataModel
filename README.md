@@ -8,7 +8,7 @@ and implement the `setData()` and `getData()` functions.
 
 #### Set and Get Example 
 Setting and getting data can be done however you want but the functions `setDataSafe()` and `getGenericData()` have been created for this purpose
-``` 
+``` php
 public function setData(array $data){
     //You can modify the data being set in here before saving it in the model
     
@@ -28,7 +28,7 @@ public function getData(){
 #### Configuration
 You can setup the configuration for allowed parameters and validators/filters in the construct.
 ##### Example Configuration
-```
+``` php
 public function __construct(){
     // $allowedParams should be an array with field names to allow.
     // when using setDataSafe() any fields in the data not allowed will be ignored.
@@ -95,7 +95,7 @@ You can use any of the values in `$data` by putting `"@fieldName"` as the value.
 Any fields not defined in this configuration will be added to the first level of the array.
 
 ###### Ex
-````
+```` php
         $this->dataFormatConfig = [
             "id" => "@user_id",
             "details" => [
@@ -107,7 +107,7 @@ Any fields not defined in this configuration will be added to the first level of
 When attempting to `setDataSafe()` you should make sure the input data is formatted exactly the same as the format configuration otherwise the aliases set in the configuration will not work.
 Setting the data using the internal index names will still work if you do not nest them.
 
-````
+```` php
     //If the data config is 
     $this->dataFormatConfig = [
         "id" => "@user_id",
@@ -117,7 +117,7 @@ Setting the data using the internal index names will still work if you do not ne
     ];
 ````
 You can return the data as either
-````
+```` php
 $data = [
     "id" => "1",
     "details" => [
@@ -126,7 +126,7 @@ $data = [
 ];
 ````
 or as 
-````
+```` php
 $data = [
     "user_id" => "1",
     "email_address" => "email@1.com"
