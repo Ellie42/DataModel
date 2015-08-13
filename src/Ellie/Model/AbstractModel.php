@@ -511,7 +511,14 @@ abstract class AbstractModel
         $result = [];
 
         if (is_string($object)) {
-            return call_user_func([$this,$object], $input);
+            $result = call_user_func([$this, $object], $input);
+            switch ($type) {
+                case "filter":
+                    $input = $result;
+                    break;
+                case "validator":
+                    return $result;
+            }
         }
 
         if ($type === 'filter') {
