@@ -1,0 +1,17 @@
+{
+  "name": "ellieDataModel",
+  "description": "",
+  "license": "BSD-3-Clause",
+  "keywords": [
+    "Data Model"
+  ],
+  "require": {
+    "php": ">=5.4.0",
+    "phpunit/phpunit": "4.0.*"
+  },
+  "autoload": {
+    "psr-0": {
+      "Ellie": "src/"
+    }
+  }
+}
