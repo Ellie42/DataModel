@@ -208,6 +208,41 @@ class AbstractModelTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * @group testSetDataGroupValidator
+     * @expectedException Exception
+     * @expectedExceptionMessage email did not pass Ellie\Model\Validator\StringValidator validation
+     */
+    public function test_setData_groupValidator()
+    {
+        $inputData = [
+            'email' => 454,
+            'user_id' => 'haha',
+            'password' => 'nope'
+        ];
+        $model = new TestModel2();
+
+        $validators = [
+            '@group' => [
+                [
+                    'fields' => ['user_id'],
+                    'validators' => [new Validator\StringValidator()]
+                ],
+                [
+                    'fields' => ['email'],
+                    'validators' => [new Validator\StringValidator()]
+                ]
+            ],
+            'user_id' => [new Validator\StringValidator()]
+        ];
+
+        $model->setValidators($validators);
+
+        $model->setData($inputData);
+
+        $data = $model->getData();
+    }
+
+    /**
      * @group testGetDataWithAlias
      */
     public function test_getData_withAliases_noFilters()

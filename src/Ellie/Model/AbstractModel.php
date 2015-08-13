@@ -315,6 +315,8 @@ abstract class AbstractModel
             }
         }
 
+        $this->addGroupSets();
+
         if ($this->filters !== null) {
             $data = $this->filterData($data);
         }
@@ -377,18 +379,14 @@ abstract class AbstractModel
     protected function filterData(array $dataArray)
     {
         $filteredData = $dataArray;
-        $this->addGroupFilters();
+
+        $this->runGlobalFilters($filteredData);
+
 
         foreach ($this->filters as $fieldName => $filters) {
 
-
-            $this->runGlobalFilters($filteredData);
-
-            if (!isset($dataArray[$fieldName])) {
-                continue;
-            }
-            foreach ($filters as $filter) {
-                $filteredData[$fieldName] = $filter->filter($filteredData[$fieldName]);
+            if (isset($dataArray[$fieldName])) {
+                $this->runSet($filteredData[$fieldName], $filters, 'filter');
             }
         }
 
@@ -403,11 +401,7 @@ abstract class AbstractModel
      */
     protected function validate($string, ...$validators)
     {
-        $resultArray = [];
-
-        foreach ($validators as $validator) {
-            $resultArray[get_class($validator)] = $validator->isValid($string);
-        }
+        $resultArray = $this->runSet($string, $validators, 'validator');
 
         return $resultArray;
     }
@@ -423,24 +417,14 @@ abstract class AbstractModel
      * @return bool
      * @throws \Exception
      */
-    protected function validateData(array $dataArray, array $validatorConfig)
+    private function validateData(array $dataArray, array $validatorConfig)
     {
-        $resultsArray = [];
+        $resultsArray = $this->runGlobalValidators($dataArray);
 
         foreach ($validatorConfig as $fieldName => $validators) {
-            $resultsArray = array_merge($resultsArray, $this->runGlobalValidators($dataArray));
-            if (!isset($dataArray[$fieldName])) {
-                continue;
-            }
-            foreach ($validators as $validator) {
-                if (is_string($validator)) {
-                    $result = call_user_func([$this, $validator], $dataArray[$fieldName]);
-                    $validatorName = $validator;
-                } else {
-                    $result = $validator->isValid($dataArray[$fieldName]);
-                    $validatorName = get_class($validator);
-                }
-                $resultsArray[$fieldName][$validatorName] = $result;
+            if (isset($dataArray[$fieldName])) {
+                $resultsArray = array_merge($resultsArray,
+                    $this->runSet($dataArray[$fieldName], $validators, 'validator', $fieldName));
             }
         }
 
@@ -452,47 +436,33 @@ abstract class AbstractModel
      * @internal param array $dataArray
      * @internal param $fieldName
      */
-    protected function addGroupFilters()
+    private function addGroupSets()
     {
-        if (!isset($this->filters['@group'])) {
-            return;
-        }
-        foreach ($this->filters['@group'] as $group) {
-            foreach ($group['fields'] as $fieldName) {
-                $this->addFilters($fieldName, $group['filters']);
-            }
-        }
-    }
-
-    protected function getFieldGroups($fieldName, $type)
-    {
-        $array = $this->$$type;
-        $groups = $array['@group'];
-
-        $returnGroups = [];
-
-        foreach ($groups as $group) {
-            if (array_search($fieldName, $group['fields']) !== false) {
-                $returnGroups = $group;
+        if (isset($this->filters['@group'])) {
+            foreach ($this->filters['@group'] as $group) {
+                foreach ($group['fields'] as $fieldName) {
+                    $this->addFilters($fieldName, $group['filters']);
+                }
             }
         }
 
-        return $returnGroups;
+        if (isset($this->validators['@group'])) {
+            foreach ($this->validators['@group'] as $group) {
+                foreach ($group['fields'] as $fieldName) {
+                    $this->addValidators($fieldName, $group['validators']);
+                }
+            }
+        }
     }
 
     /**
      * Run all the filters set in @all
      * @param array $dataArray
      */
-    protected function runGlobalFilters(array &$dataArray)
+    private function runGlobalFilters(array &$dataArray)
     {
         if (isset($this->filters['@all'])) {
-            $globalFilters = $this->filters['@all'];
-            foreach ($globalFilters as $globalFilter) {
-                foreach ($dataArray as &$data) {
-                    $data = $globalFilter->filter($data);
-                }
-            }
+            $this->runSet($dataArray, $this->filters['@all'], 'filter');
         }
     }
 
@@ -501,21 +471,47 @@ abstract class AbstractModel
      * @param array $dataArray
      * @return array
      */
-    protected function runGlobalValidators(array $dataArray)
+    private function runGlobalValidators(array $dataArray)
     {
         $resultsArray = [];
 
         if (isset($this->validators['@all'])) {
-            $globalValidators = $this->validators['@all'];
-            foreach ($globalValidators as $globalValidator) {
-                foreach ($dataArray as $name => $data) {
-                    $result = $globalValidator->isValid($data);
-                    $validatorName = get_class($globalValidator);
+            $resultsArray = $this->runSet($dataArray, $this->validators['@all'], 'validator');
+        }
+
+        return $resultsArray;
+    }
+
+    private function runSet(&$inputData, array $set, $type, $name = null)
+    {
+        $resultsArray = [];
+
+        foreach ($set as $object) {
+            $validatorName = get_class($object);
+            if (is_array($inputData)) {
+                foreach ($inputData as $name => &$data) {
+                    $result = $this->runSingle($data, $object, $type, $name);
                     $resultsArray[$name][$validatorName] = $result;
                 }
+            } else {
+                $result = $this->runSingle($inputData, $object, $type, $name);
+                $resultsArray[$name][$validatorName] = $result;
             }
         }
 
         return $resultsArray;
+    }
+
+    private function runSingle(&$input, $object, $type)
+    {
+        $result = [];
+
+        if ($type === 'filter') {
+            $input = $object->filter($input);
+        } else if ($type === 'validator') {
+            $result = $object->isValid($input);
+        }
+
+        return $result;
     }
 }
