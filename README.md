@@ -133,6 +133,4 @@ $data = [
 ]
 ````
 
-# Disclaimer
-
 I probably missed a few things here but there is most of it :)
